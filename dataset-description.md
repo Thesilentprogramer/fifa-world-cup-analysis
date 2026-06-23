@@ -11,7 +11,7 @@ This dataset contains pre-engineered features, model metadata, and squad data bu
 
 | File | Description |
 |------|-------------|
-| `match_features.parquet` | **Main feature table** — 28,000+ team-perspective rows for men's international matches (2000–2025). Each row is one team's view of one match. |
+| `match_features.csv` | **Main feature table** — 28,000+ team-perspective rows for men's international matches (2000–2025). Each row is one team's view of one match. |
 | `squad_values_by_year.csv` | Aggregated squad market values per national team per year, sourced from [transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets). |
 | `national_team_ids.json` | Transfermarkt internal IDs for national teams (used for squad value joins). |
 | `feature_columns.json` | Ordered list of feature column names used during XGBoost model training. |
@@ -20,7 +20,7 @@ This dataset contains pre-engineered features, model metadata, and squad data bu
 
 ---
 
-## `match_features.parquet` — column reference
+## `match_features.csv` — column reference
 
 | Column | Type | Description |
 |--------|------|-------------|

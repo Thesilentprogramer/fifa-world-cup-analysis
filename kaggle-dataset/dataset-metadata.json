@@ -2,117 +2,393 @@
   "id": "shubhamindulkar/fifa-wc-2026-engineered-match-dataset",
   "title": "FIFA World Cup 2026 — Engineered Match Dataset",
   "subtitle": "ELO, rolling form, H2H & squad values — WC 2026 ML prediction dataset",
-  "licenses": [{"name": "CC0-1.0"}],
-  "keywords": ["football", "xgboost", "classification", "sports"],
+  "description": "Pre-engineered features for men's international football match outcome prediction. Includes ELO ratings, rolling form, H2H history, squad market values, and model metadata. Companion to the FIFA WC 2026 ML Analysis notebook.",
+  "licenses": [
+    {
+      "name": "CC0-1.0"
+    }
+  ],
+  "keywords": [
+    "football",
+    "xgboost",
+    "classification",
+    "sports"
+  ],
+  "expectedUpdateFrequency": "Never",
+  "userSpecifiedSources": "martj42/international_results, StatsBomb open-data, transfermarkt-datasets",
+  "image": "../cover.png",
   "resources": [
     {
-      "path": "match_features.parquet",
+      "path": "match_features.csv",
       "description": "Main feature table. One row per team per match (two rows per game). Covers men's international football from 2000 to 2025 across World Cups, Euros, qualifiers, friendlies, Copa América, AFCON and Nations League. Outcome label is from the perspective of the 'team' column. Use match_date for temporal train/val/test splits.",
       "schema": {
         "fields": [
-          {"name": "match_id",               "description": "Unique match identifier: YYYYMMDD_HomeTeam_AwayTeam (string)"},
-          {"name": "match_date",              "description": "Date of the match (datetime)"},
-          {"name": "tournament",              "description": "Tournament name as recorded in martj42/international_results (string)"},
-          {"name": "tcat",                    "description": "Tournament category: world_cup | euro | qualifier | friendly | other (string)"},
-          {"name": "team",                    "description": "The team this row represents (canonical name, string)"},
-          {"name": "opponent",               "description": "The opposing team (canonical name, string)"},
-          {"name": "goals_for",              "description": "Full-time goals scored by 'team' (int)"},
-          {"name": "goals_against",          "description": "Full-time goals conceded by 'team' (int)"},
-          {"name": "is_home",                "description": "1 if team played at home venue, 0 otherwise (binary int)"},
-          {"name": "is_neutral",             "description": "1 if match was played at a neutral venue (binary int)"},
-          {"name": "is_knockout",            "description": "1 if match was a knockout stage game (binary int)"},
-          {"name": "stage",                  "description": "Match stage: group | round_of_16 | quarter_final | semi_final | final (string)"},
-          {"name": "outcome",                "description": "Target label from team's perspective: 0=Loss, 1=Draw, 2=Win (int)"},
-          {"name": "points",                 "description": "Points earned: 3=Win, 1=Draw, 0=Loss (int)"},
-          {"name": "team_elo",               "description": "Team's pre-match ELO rating (K=20, home advantage=100, init=1500) (float)"},
-          {"name": "opp_elo",                "description": "Opponent's pre-match ELO rating (float)"},
-          {"name": "elo_diff",               "description": "team_elo minus opp_elo — single strongest predictor (float)"},
-          {"name": "form_5",                 "description": "Rolling points sum over team's last 5 matches before this game (float)"},
-          {"name": "form_10",                "description": "Rolling points sum over team's last 10 matches before this game (float)"},
-          {"name": "form_diff_5",            "description": "form_5 minus opponent's form_5 — form advantage metric (float)"},
-          {"name": "form_diff_10",           "description": "form_10 minus opponent's form_10 (float)"},
-          {"name": "gf_avg_5",               "description": "Rolling average goals scored per game over last 5 matches (float)"},
-          {"name": "ga_avg_5",               "description": "Rolling average goals conceded per game over last 5 matches (float)"},
-          {"name": "gf_avg_10",              "description": "Rolling average goals scored per game over last 10 matches (float)"},
-          {"name": "ga_avg_10",              "description": "Rolling average goals conceded per game over last 10 matches (float)"},
-          {"name": "t_form_5",               "description": "Rolling points sum over last 5 matches in the SAME tournament category (float)"},
-          {"name": "t_gf_5",                 "description": "Rolling avg goals scored over last 5 matches in same tournament category (float)"},
-          {"name": "t_ga_5",                 "description": "Rolling avg goals conceded over last 5 matches in same tournament category (float)"},
-          {"name": "rest",                   "description": "Days since team's previous match (clipped 1–365, default 14) (float)"},
-          {"name": "opp_rest",               "description": "Days since opponent's previous match (float)"},
-          {"name": "rest_diff",              "description": "rest minus opp_rest — positive means team is more rested (float)"},
-          {"name": "h2h_n",                  "description": "Number of prior head-to-head meetings (max 10 recent) (int)"},
-          {"name": "h2h_wins",               "description": "Head-to-head wins for 'team' in prior meetings (int)"},
-          {"name": "h2h_draws",              "description": "Head-to-head draws in prior meetings (int)"},
-          {"name": "h2h_losses",             "description": "Head-to-head losses for 'team' in prior meetings (int)"},
-          {"name": "h2h_gf",                 "description": "Total goals scored by 'team' in H2H meetings (float)"},
-          {"name": "h2h_ga",                 "description": "Total goals conceded by 'team' in H2H meetings (float)"},
-          {"name": "confederation",          "description": "FIFA confederation of 'team': UEFA | CONMEBOL | CONCACAF | CAF | AFC | OFC (string)"},
-          {"name": "opp_confederation",      "description": "FIFA confederation of 'opponent' (string)"},
-          {"name": "same_conf",              "description": "1 if both teams from the same confederation (binary int)"},
-          {"name": "squad_market_value",     "description": "Team's squad market value in € millions from Transfermarkt (float, NaN if unavailable)"},
-          {"name": "squad_value_diff",       "description": "squad_market_value minus opponent's squad_market_value (float)"},
-          {"name": "implied_prob_win",       "description": "Bookmaker-implied win probability (from B365/PS odds where available, else NaN) (float)"},
-          {"name": "implied_prob_draw",      "description": "Bookmaker-implied draw probability (float)"},
-          {"name": "implied_prob_loss",      "description": "Bookmaker-implied loss probability (float)"},
-          {"name": "implied_prob_diff",      "description": "implied_prob_win minus implied_prob_loss — bookmaker edge (float)"}
+          {
+            "name": "match_id",
+            "description": "Unique match identifier: YYYYMMDD_HomeTeam_AwayTeam (string)"
+          },
+          {
+            "name": "match_date",
+            "description": "Date of the match (datetime)"
+          },
+          {
+            "name": "competition",
+            "description": "Competition or tournament name (string)"
+          },
+          {
+            "name": "tournament",
+            "description": "Tournament name as recorded in raw international results (string)"
+          },
+          {
+            "name": "tournament_category",
+            "description": "Tournament category: world_cup | euro | qualifier | friendly | other (string)"
+          },
+          {
+            "name": "team",
+            "description": "The team this row represents (canonical name, string)"
+          },
+          {
+            "name": "opponent",
+            "description": "The opposing team (canonical name, string)"
+          },
+          {
+            "name": "goals_for",
+            "description": "Full-time goals scored by team (int)"
+          },
+          {
+            "name": "goals_against",
+            "description": "Full-time goals conceded by team (int)"
+          },
+          {
+            "name": "is_home",
+            "description": "1 if team played at home venue, 0 otherwise (binary int)"
+          },
+          {
+            "name": "is_neutral",
+            "description": "1 if match was played at a neutral venue (binary int)"
+          },
+          {
+            "name": "stage",
+            "description": "Match stage: group | round_of_16 | quarter_final | semi_final | final (string)"
+          },
+          {
+            "name": "is_knockout",
+            "description": "1 if match was a knockout stage game (binary int)"
+          },
+          {
+            "name": "outcome",
+            "description": "Target label from team perspective: 0=Loss, 1=Draw, 2=Win (int)"
+          },
+          {
+            "name": "points",
+            "description": "Points earned: 3=Win, 1=Draw, 0=Loss (int)"
+          },
+          {
+            "name": "odds_home",
+            "description": "Bookmaker odds for home team win (float, NaN if unavailable)"
+          },
+          {
+            "name": "odds_draw",
+            "description": "Bookmaker odds for draw (float, NaN if unavailable)"
+          },
+          {
+            "name": "odds_away",
+            "description": "Bookmaker odds for away team win (float, NaN if unavailable)"
+          },
+          {
+            "name": "polymarket_prob_home",
+            "description": "Polymarket-implied probability for home team win (float, NaN if unavailable)"
+          },
+          {
+            "name": "polymarket_prob_away",
+            "description": "Polymarket-implied probability for away team win (float, NaN if unavailable)"
+          },
+          {
+            "name": "shots",
+            "description": "Total shots taken by team (int, NaN if unavailable)"
+          },
+          {
+            "name": "shots_on_target",
+            "description": "Shots on target by team (int, NaN if unavailable)"
+          },
+          {
+            "name": "xg",
+            "description": "Expected Goals (xG) created by team (float, NaN if unavailable)"
+          },
+          {
+            "name": "corners",
+            "description": "Corners awarded to team (int, NaN if unavailable)"
+          },
+          {
+            "name": "fouls",
+            "description": "Fouls committed by team (int, NaN if unavailable)"
+          },
+          {
+            "name": "possession_pct",
+            "description": "Possession percentage of team (float, NaN if unavailable)"
+          },
+          {
+            "name": "team_rest_days",
+            "description": "Days since team previous match (float)"
+          },
+          {
+            "name": "opp_rest_days",
+            "description": "Days since opponent previous match (float)"
+          },
+          {
+            "name": "rest_days_diff",
+            "description": "team_rest_days minus opp_rest_days (float)"
+          },
+          {
+            "name": "form_5",
+            "description": "Rolling points sum over team last 5 matches before this game (float)"
+          },
+          {
+            "name": "goals_for_avg_5",
+            "description": "Rolling average goals scored per game over last 5 matches (float)"
+          },
+          {
+            "name": "goals_against_avg_5",
+            "description": "Rolling average goals conceded per game over last 5 matches (float)"
+          },
+          {
+            "name": "shots_avg_5",
+            "description": "Rolling average shots over last 5 matches (float)"
+          },
+          {
+            "name": "shots_on_target_avg_5",
+            "description": "Rolling average shots on target over last 5 matches (float)"
+          },
+          {
+            "name": "xg_avg_5",
+            "description": "Rolling average Expected Goals (xG) over last 5 matches (float)"
+          },
+          {
+            "name": "corners_avg_5",
+            "description": "Rolling average corners over last 5 matches (float)"
+          },
+          {
+            "name": "fouls_avg_5",
+            "description": "Rolling average fouls over last 5 matches (float)"
+          },
+          {
+            "name": "possession_pct_avg_5",
+            "description": "Rolling average possession percentage over last 5 matches (float)"
+          },
+          {
+            "name": "form_10",
+            "description": "Rolling points sum over team last 10 matches before this game (float)"
+          },
+          {
+            "name": "goals_for_avg_10",
+            "description": "Rolling average goals scored per game over last 10 matches (float)"
+          },
+          {
+            "name": "goals_against_avg_10",
+            "description": "Rolling average goals conceded per game over last 10 matches (float)"
+          },
+          {
+            "name": "shots_avg_10",
+            "description": "Rolling average shots over last 10 matches (float)"
+          },
+          {
+            "name": "shots_on_target_avg_10",
+            "description": "Rolling average shots on target over last 10 matches (float)"
+          },
+          {
+            "name": "xg_avg_10",
+            "description": "Rolling average Expected Goals (xG) over last 10 matches (float)"
+          },
+          {
+            "name": "corners_avg_10",
+            "description": "Rolling average corners over last 10 matches (float)"
+          },
+          {
+            "name": "fouls_avg_10",
+            "description": "Rolling average fouls over last 10 matches (float)"
+          },
+          {
+            "name": "possession_pct_avg_10",
+            "description": "Rolling average possession percentage over last 10 matches (float)"
+          },
+          {
+            "name": "tournament_form_5",
+            "description": "Rolling points sum over last 5 matches in the same tournament category (float)"
+          },
+          {
+            "name": "tournament_goals_for_avg_5",
+            "description": "Rolling average goals scored in same tournament category over last 5 matches (float)"
+          },
+          {
+            "name": "tournament_goals_against_avg_5",
+            "description": "Rolling average goals conceded in same tournament category over last 5 matches (float)"
+          },
+          {
+            "name": "h2h_matches",
+            "description": "Number of prior head-to-head meetings (max 10 recent) (int)"
+          },
+          {
+            "name": "h2h_wins",
+            "description": "Head-to-head wins for team in prior meetings (int)"
+          },
+          {
+            "name": "h2h_draws",
+            "description": "Head-to-head draws in prior meetings (int)"
+          },
+          {
+            "name": "h2h_losses",
+            "description": "Head-to-head losses for team in prior meetings (int)"
+          },
+          {
+            "name": "h2h_goals_for",
+            "description": "Total goals scored by team in H2H meetings (float)"
+          },
+          {
+            "name": "h2h_goals_against",
+            "description": "Total goals conceded by team in H2H meetings (float)"
+          },
+          {
+            "name": "team_elo",
+            "description": "Team pre-match ELO rating (float)"
+          },
+          {
+            "name": "opponent_elo",
+            "description": "Opponent pre-match ELO rating (float)"
+          },
+          {
+            "name": "elo_diff",
+            "description": "team_elo minus opponent_elo — single strongest predictor (float)"
+          },
+          {
+            "name": "implied_prob_win",
+            "description": "Bookmaker-implied win probability (float, NaN if unavailable)"
+          },
+          {
+            "name": "implied_prob_draw",
+            "description": "Bookmaker-implied draw probability (float)"
+          },
+          {
+            "name": "implied_prob_loss",
+            "description": "Bookmaker-implied loss probability (float)"
+          },
+          {
+            "name": "implied_prob_diff",
+            "description": "implied_prob_win minus implied_prob_loss (float)"
+          },
+          {
+            "name": "polymarket_prob_win",
+            "description": "Polymarket-implied win probability (float, NaN if unavailable)"
+          },
+          {
+            "name": "polymarket_prob_draw",
+            "description": "Polymarket-implied draw probability (float, NaN if unavailable)"
+          },
+          {
+            "name": "polymarket_prob_loss",
+            "description": "Polymarket-implied loss probability (float, NaN if unavailable)"
+          },
+          {
+            "name": "polymarket_prob_diff",
+            "description": "polymarket_prob_win minus polymarket_prob_loss (float, NaN if unavailable)"
+          },
+          {
+            "name": "tournament_year",
+            "description": "Year of the tournament (int)"
+          },
+          {
+            "name": "fbref_goals_per90",
+            "description": "Team average goals per 90 from FBref (float, NaN if unavailable)"
+          },
+          {
+            "name": "fbref_xg_per90",
+            "description": "Team average Expected Goals (xG) per 90 from FBref (float, NaN if unavailable)"
+          },
+          {
+            "name": "fbref_assists_per90",
+            "description": "Team average assists per 90 from FBref (float, NaN if unavailable)"
+          },
+          {
+            "name": "squad_market_value",
+            "description": "Team squad market value in € millions from Transfermarkt (float, NaN if unavailable)"
+          },
+          {
+            "name": "opponent_squad_market_value",
+            "description": "Opponent squad market value in € millions from Transfermarkt (float, NaN if unavailable)"
+          },
+          {
+            "name": "squad_value_diff",
+            "description": "squad_market_value minus opponent squad market value (float)"
+          },
+          {
+            "name": "form_diff_5",
+            "description": "form_5 minus opponent form_5 — form advantage metric (float)"
+          },
+          {
+            "name": "xg_diff_5",
+            "description": "xg_avg_5 minus opponent xg_avg_5 (float)"
+          },
+          {
+            "name": "form_diff_10",
+            "description": "form_10 minus opponent form_10 (float)"
+          },
+          {
+            "name": "xg_diff_10",
+            "description": "xg_avg_10 minus opponent xg_avg_10 (float)"
+          },
+          {
+            "name": "confederation",
+            "description": "FIFA confederation of team (string)"
+          },
+          {
+            "name": "opp_confederation",
+            "description": "FIFA confederation of opponent (string)"
+          },
+          {
+            "name": "same_confederation",
+            "description": "1 if both teams from the same confederation (binary int)"
+          },
+          {
+            "name": "stage_encoded",
+            "description": "Integer-encoded stage label (int)"
+          }
         ]
       }
     },
     {
       "path": "squad_values_by_year.csv",
-      "description": "Aggregated squad market values per national team per year, sourced from the transfermarkt-datasets project (github.com/dcaribou/transfermarkt-datasets). Values are in millions of Euros. Join to match_features.parquet on team name + year(match_date) to add the squad_market_value feature.",
+      "description": "Aggregated squad market values per national team per year, sourced from the transfermarkt-datasets project (github.com/dcaribou/transfermarkt-datasets). Values are in millions of Euros. Join to match_features.csv on team name + year(match_date) to add the squad_market_value feature.",
       "schema": {
         "fields": [
-          {"name": "team",         "description": "Canonical national team name (string)"},
-          {"name": "year",         "description": "Year the valuation was recorded (int)"},
-          {"name": "squad_value",  "description": "Total squad market value in millions of Euros (float)"},
-          {"name": "n_players",    "description": "Number of players with valuations included in the sum (int)"}
+          {
+            "name": "team",
+            "description": "Canonical national team name (string)"
+          },
+          {
+            "name": "tournament_year",
+            "description": "Column tournament_year"
+          },
+          {
+            "name": "squad_market_value",
+            "description": "Column squad_market_value"
+          }
         ]
       }
     },
     {
       "path": "national_team_ids.json",
-      "description": "Mapping of canonical national team names to their Transfermarkt internal club IDs. Used to join squad valuations when fetching fresh data from the Transfermarkt API. Format: { \"Argentina\": 3437, \"Brazil\": 3439, ... }",
-      "schema": {
-        "fields": [
-          {"name": "key",   "description": "Canonical team name (string)"},
-          {"name": "value", "description": "Transfermarkt internal team ID (integer)"}
-        ]
-      }
+      "description": "Mapping of canonical national team names to their Transfermarkt internal club IDs. Used to join squad valuations when fetching fresh data from the Transfermarkt API. Format: { \"Argentina\": 3437, \"Brazil\": 3439, ... }"
     },
     {
       "path": "feature_columns.json",
-      "description": "Ordered list of feature column names used during XGBoost model training. Load this to ensure your feature matrix columns are in the correct order when making predictions. Format: [ \"is_home\", \"is_neutral\", ... ]",
-      "schema": {
-        "fields": [
-          {"name": "value", "description": "Feature column name as it appears in match_features.parquet (string)"}
-        ]
-      }
+      "description": "Ordered list of feature column names used during XGBoost model training. Load this to ensure your feature matrix columns are in the correct order when making predictions. Format: [ \"is_home\", \"is_neutral\", ... ]"
     },
     {
       "path": "team_encoder.json",
-      "description": "Sorted list of all 200+ canonical national team names seen during model training. Use for team name validation and lookup. Format: [ \"Afghanistan\", \"Albania\", ... ]",
-      "schema": {
-        "fields": [
-          {"name": "value", "description": "Canonical team name (string)"}
-        ]
-      }
+      "description": "Sorted list of all 200+ canonical national team names seen during model training. Use for team name validation and lookup. Format: [ \"Afghanistan\", \"Albania\", ... ]"
     },
     {
       "path": "metrics.json",
-      "description": "Validation and test set performance metrics from the trained XGBoost + calibration pipeline. Validation = 2018 FIFA World Cup (64 matches). Test = 2022 FIFA World Cup (64 matches, held-out). Includes accuracy, log_loss, and Brier score.",
-      "schema": {
-        "fields": [
-          {"name": "validation.accuracy",   "description": "Three-class accuracy on 2018 WC validation set (float, 0–1)"},
-          {"name": "validation.log_loss",   "description": "Multi-class log loss on 2018 WC (lower is better) (float)"},
-          {"name": "validation.brier",      "description": "Mean Brier score on 2018 WC (lower is better) (float)"},
-          {"name": "test.accuracy",         "description": "Three-class accuracy on held-out 2022 WC test set (float, 0–1)"},
-          {"name": "test.log_loss",         "description": "Multi-class log loss on 2022 WC test set (float)"},
-          {"name": "test.brier",            "description": "Mean Brier score on 2022 WC test set (float)"},
-          {"name": "high_confidence_test_acc", "description": "Accuracy on matches where model confidence ≥ 55% (float, 0–1)"}
-        ]
-      }
+      "description": "Validation and test set performance metrics from the trained XGBoost + calibration pipeline. Validation = 2018 FIFA World Cup (64 matches). Test = 2022 FIFA World Cup (64 matches, held-out). Includes accuracy, log_loss, and Brier score."
     }
   ]
 }
