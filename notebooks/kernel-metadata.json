@@ -1,0 +1,13 @@
+{
+  "id": "shubhamindulkar/fifa-world-cup-2026-end-to-end-ml-analysis",
+  "title": "FIFA World Cup 2026 — End-to-End ML Analysis",
+  "code_file": "kaggle_wc2026_analysis.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": ["shubhamindulkar/fifa-wc-2026-engineered-match-dataset"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
