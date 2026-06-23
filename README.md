@@ -2,6 +2,15 @@
 
 A machine learning system that predicts international football match outcomes (Win / Draw / Loss) using martj42 international results enriched with StatsBomb event data, Elo ratings, and player aggregates.
 
+See [DEVELOPMENT.md](DEVELOPMENT.md) for architecture, pipeline details, issues faced, and roadmap.
+
+The app opens on a **Three.js splash screen** (48 nations orbiting a football) — click **ENTER DASHBOARD** for **today/tomorrow** WC 2026 picks and **cached played** results. Use the sidebar for **Custom Matchup** and **xG Engine**.
+
+```bash
+# Daily data + conditional model refresh (or install via scripts/install_cron.sh)
+python scripts/daily_matchday_refresh.py
+```
+
 ## Features
 
 - **Match Outcome Predictor** — calibrated probability estimates for any two national teams
@@ -19,8 +28,9 @@ source .venv/bin/activate
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Download data (martj42 + StatsBomb + odds)
-python scripts/download_data.py
+# 3. Download data (martj42 + fixtures + optional API-Football key in .env)
+cp .env.example .env   # add API_FOOTBALL_KEY for live fixture sync
+python scripts/download_data.py --api-football-only
 # Or international only (faster):
 python scripts/download_data.py --international-only
 
@@ -30,7 +40,7 @@ python scripts/build_features.py
 # 5. Train model
 python scripts/train_model.py
 
-# 6. Run app
+# 6. Run app (splash → ENTER DASHBOARD → WC 2026 analysis)
 streamlit run app/main.py
 ```
 
@@ -54,7 +64,19 @@ fifa-world-cup-analysis/
 | [martj42/international_results](https://github.com/martj42/international_results) | Free | ~49k men's international match results |
 | [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Free | Match events, lineups, xG (enrichment) |
 | [football-data.co.uk](https://www.football-data.co.uk/) | Free | World Cup bookmaker odds (when available) |
+| [transfermarkt-api](https://github.com/felipeall/transfermarkt-api) | MIT | Squad market values (national teams) |
+| [Polymarket](https://docs.polymarket.com/market-data/overview) | Public API | Prediction-market odds (WC matches, no API key) |
+| [API-Football](https://www.api-football.com/documentation-v3) | API key | WC 2026 fixture schedule (martj42 fallback) |
 | FBref via soccerdata | Free | Player aggregates (optional; goalscorers fallback) |
+
+Copy `.env.example` to `.env` only if you need custom API base URLs. **Polymarket API keys are not required** for read-only market data.
+
+## Phase 2 — xG Engine
+
+```bash
+python scripts/train_xg_model.py   # shot-level model -> models/xg_model.pkl
+streamlit run app/main.py          # open "xG Engine" page
+```
 
 ## Model Evaluation
 
