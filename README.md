@@ -1,5 +1,8 @@
 # FIFA World Cup Match Predictor
 
+[![Kaggle Notebook](https://img.shields.io/badge/Kaggle-Notebook-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/code/shubhamindulkar/fifa-world-cup-2026-ml-analysis)
+[![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://share.streamlit.io)
+
 A machine learning system that predicts international football match outcomes (Win / Draw / Loss) using martj42 international results enriched with StatsBomb event data, Elo ratings, and player aggregates.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for architecture, pipeline details, issues faced, and roadmap.
@@ -64,12 +67,28 @@ fifa-world-cup-analysis/
 | [martj42/international_results](https://github.com/martj42/international_results) | Free | ~49k men's international match results |
 | [StatsBomb Open Data](https://github.com/statsbomb/open-data) | Free | Match events, lineups, xG (enrichment) |
 | [football-data.co.uk](https://www.football-data.co.uk/) | Free | World Cup bookmaker odds (when available) |
-| [transfermarkt-api](https://github.com/felipeall/transfermarkt-api) | MIT | Squad market values (national teams) |
+| Transfermarkt (via [transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets)) | MIT | Squad market values — see note below |
 | [Polymarket](https://docs.polymarket.com/market-data/overview) | Public API | Prediction-market odds (WC matches, no API key) |
 | [API-Football](https://www.api-football.com/documentation-v3) | API key | WC 2026 fixture schedule (martj42 fallback) |
 | FBref via soccerdata | Free | Player aggregates (optional; goalscorers fallback) |
 
 Copy `.env.example` to `.env` only if you need custom API base URLs. **Polymarket API keys are not required** for read-only market data.
+
+### Transfermarkt Squad Values — How to Obtain
+
+Squad market values are sourced from the open-source [transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets) project. To download:
+
+```bash
+# Option A — download the prepared CSVs directly
+curl -L https://raw.githubusercontent.com/dcaribou/transfermarkt-datasets/master/data/prep/player_valuations.csv \
+  -o data/raw/transfermarkt/player_valuations.csv
+
+# Option B — clone the full dataset
+git clone https://github.com/dcaribou/transfermarkt-datasets.git /tmp/tm
+cp /tmp/tm/data/prep/*.csv data/raw/transfermarkt/
+```
+
+The key files are `player_valuations.csv` and `players.csv`. The `squad_values_by_year.csv` in this repo was pre-aggregated from those sources using `src/transfermarkt_client.py`. This feature is **optional** — the model is fully functional without it.
 
 ## Phase 2 — xG Engine
 
@@ -89,6 +108,19 @@ Honest held-out evaluation on men's FIFA World Cup matches only. Three-class acc
 | High-confidence test (≥55%) | 88 | — | — | **61.4%** |
 
 Training pool: **28,672** perspective rows before 2018-06-01 (21,195 matches since 2000). Features include Elo ratings, rolling form, tournament-specific form, rest days, H2H history, StatsBomb xG/shots (where available), and FBref/goalscorer aggregates. Probabilities calibrated via isotonic regression on 2018 World Cup matches.
+
+## Kaggle Notebook
+
+A fully self-contained Kaggle-optimised notebook is available at [`notebooks/kaggle_wc2026_analysis.ipynb`](notebooks/kaggle_wc2026_analysis.ipynb).
+
+It covers EDA → ELO ratings → feature engineering → XGBoost model → WC 2026 group predictions → xG simulation → penalty shootout simulator — all with **no API keys** required (data downloads from public GitHub URLs automatically).
+
+[![Open in Kaggle](https://img.shields.io/badge/Open%20in-Kaggle-20BEFF?logo=kaggle)](https://www.kaggle.com/code/shubhamindulkar/fifa-world-cup-2026-ml-analysis)
+
+```bash
+# Run locally
+jupyter notebook notebooks/kaggle_wc2026_analysis.ipynb
+```
 
 ## Deploy to Streamlit Community Cloud
 
