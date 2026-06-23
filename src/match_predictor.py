@@ -50,6 +50,12 @@ FEATURE_LABELS = {
     "implied_prob_draw": "bookmaker draw probability",
     "implied_prob_loss": "bookmaker loss probability",
     "implied_prob_diff": "bookmaker probability edge",
+    "polymarket_prob_win": "Polymarket win probability",
+    "polymarket_prob_draw": "Polymarket draw probability",
+    "polymarket_prob_loss": "Polymarket loss probability",
+    "polymarket_prob_diff": "Polymarket probability edge",
+    "squad_market_value": "squad market value (Transfermarkt)",
+    "squad_value_diff": "squad value advantage",
     "fbref_goals_per90": "goals per 90 (FBref)",
     "fbref_xg_per90": "xG per 90 (FBref)",
     "fbref_assists_per90": "assists per 90 (FBref)",
@@ -155,6 +161,31 @@ class MatchPredictor:
 
         row = {c: defaults.get(c, 0.0) for c in self.feature_columns}
         return pd.DataFrame([row])
+
+    def predict_fast(
+        self,
+        team_a: str,
+        team_b: str,
+        stage: str = "group",
+        is_home: int = 1,
+    ) -> dict:
+        """Probabilities only (no SHAP) — for batch fixture dashboards."""
+        X = self._build_feature_row(team_a, team_b, stage, is_home)
+        proba = self.calibrator.predict_proba(X)[0]
+        pred_class = int(proba.argmax())
+        labels = ["Loss", "Draw", "Win"]
+        return {
+            "team_a": team_a,
+            "team_b": team_b,
+            "probabilities": {
+                "loss": float(proba[0]),
+                "draw": float(proba[1]),
+                "win": float(proba[2]),
+            },
+            "predicted_outcome": labels[pred_class],
+            "confidence": float(proba[pred_class]),
+            "sparse_data_warning": team_a not in self._team_snapshots or team_b not in self._team_snapshots,
+        }
 
     def predict(
         self,

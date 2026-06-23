@@ -44,6 +44,26 @@ INTERNATIONAL_TO_CANONICAL: dict[str, str] = {
     "São Tomé e Príncipe": "Sao Tome and Principe",
 }
 
+API_FOOTBALL_TO_CANONICAL: dict[str, str] = {
+    **INTERNATIONAL_TO_CANONICAL,
+    "USA": "United States",
+    "Korea Republic": "South Korea",
+    "Iran": "Iran",
+    "Cote d'Ivoire": "Ivory Coast",
+    "Cape Verde Islands": "Cape Verde",
+    "Congo": "Congo",
+    "Congo DR": "DR Congo",
+    "FYR Macedonia": "North Macedonia",
+    "Republic of Ireland": "Ireland",
+    "Türkiye": "Turkey",
+    "Curacao": "Curacao",
+    "Curaçao": "Curacao",
+    "Bosnia-Herzegovina": "Bosnia and Herzegovina",
+    "Czech Republic": "Czechia",
+    "South Korea": "South Korea",
+    "North Korea": "North Korea",
+}
+
 STATSBOMB_TO_CANONICAL: dict[str, str] = {**INTERNATIONAL_TO_CANONICAL}
 
 TRANSFERMARKT_TO_CANONICAL: dict[str, str] = {
@@ -61,7 +81,7 @@ TRANSFERMARKT_TO_CANONICAL: dict[str, str] = {
 }
 
 CANONICAL_ALIASES: dict[str, str] = {}
-for mapping in (INTERNATIONAL_TO_CANONICAL, STATSBOMB_TO_CANONICAL, TRANSFERMARKT_TO_CANONICAL):
+for mapping in (INTERNATIONAL_TO_CANONICAL, STATSBOMB_TO_CANONICAL, TRANSFERMARKT_TO_CANONICAL, API_FOOTBALL_TO_CANONICAL):
     CANONICAL_ALIASES.update(mapping)
 
 
@@ -73,6 +93,8 @@ def normalize_team_name(name: str, source: str = "statsbomb") -> str:
     cleaned = name.strip()
     if source == "transfermarkt":
         mapping = TRANSFERMARKT_TO_CANONICAL
+    elif source == "api_football":
+        mapping = API_FOOTBALL_TO_CANONICAL
     elif source == "international":
         mapping = INTERNATIONAL_TO_CANONICAL
     else:

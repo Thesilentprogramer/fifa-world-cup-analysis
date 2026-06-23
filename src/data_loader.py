@@ -546,5 +546,12 @@ def load_all_matches() -> pd.DataFrame:
         )
         matches = matches.drop(columns=["match_date_norm"], errors="ignore")
 
+    from src.polymarket_client import join_polymarket_odds_to_matches
+    matches = join_polymarket_odds_to_matches(matches)
+
     return matches
+
+
+# Re-export for backward compatibility (canonical implementation in statsbomb_shots.py).
+from src.statsbomb_shots import load_statsbomb_shots  # noqa: E402
 

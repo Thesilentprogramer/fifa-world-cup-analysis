@@ -13,6 +13,8 @@ from src.data_loader import load_all_matches, tournament_category
 from src.elo import add_elo_to_perspective_rows, compute_elo_ratings
 from src.odds_comparison import odds_to_implied_probs
 from src.player_stats import join_player_stats_to_matches
+from src.polymarket_client import add_polymarket_features
+from src.transfermarkt_client import join_squad_values_to_matches
 from src.team_mapping import normalize_team_name
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -88,6 +90,9 @@ def build_match_base(matches: pd.DataFrame) -> pd.DataFrame:
                 "odds_home": m.get("odds_home", np.nan),
                 "odds_draw": m.get("odds_draw", np.nan),
                 "odds_away": m.get("odds_away", np.nan),
+                "polymarket_prob_home": m.get("polymarket_prob_home", np.nan),
+                "polymarket_prob_draw": m.get("polymarket_prob_draw", np.nan),
+                "polymarket_prob_away": m.get("polymarket_prob_away", np.nan),
             }
             row.update(tstats)
             rows.append(row)
@@ -270,6 +275,8 @@ FEATURE_COLUMNS = [
     "tournament_form_5", "tournament_goals_for_avg_5", "tournament_goals_against_avg_5",
     "team_rest_days", "rest_days_diff",
     "implied_prob_win", "implied_prob_draw", "implied_prob_loss", "implied_prob_diff",
+    "polymarket_prob_win", "polymarket_prob_draw", "polymarket_prob_loss", "polymarket_prob_diff",
+    "squad_market_value", "squad_value_diff",
     "fbref_goals_per90", "fbref_xg_per90", "fbref_assists_per90",
     "h2h_matches", "h2h_wins", "h2h_draws", "h2h_losses",
     "h2h_goals_for", "h2h_goals_against",
@@ -290,7 +297,9 @@ def build_features(output_path: Path | None = None) -> pd.DataFrame:
     df = compute_h2h_features(df)
     df = add_elo_to_perspective_rows(df, matches_elo)
     df = add_odds_features(df)
+    df = add_polymarket_features(df)
     df = join_player_stats_to_matches(df)
+    df = join_squad_values_to_matches(df)
     df = add_opponent_adjusted_features(df)
 
     stage_map = {"group": 0, "round_of_16": 1, "quarter_final": 2, "semi_final": 3, "final": 4}

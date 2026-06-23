@@ -88,6 +88,56 @@ def download_odds(force: bool = False) -> None:
     print("  [skip] Could not download odds — model will median-impute odds features")
 
 
+def download_transfermarkt_api(teams: list[str] | None = None, force: bool = False) -> None:
+    """Fetch squad market values via felipeall/transfermarkt-api."""
+    from src.transfermarkt_client import SQUAD_VALUES_PATH, build_squad_values_table, load_squad_values
+
+    if SQUAD_VALUES_PATH.exists() and not force and teams is None:
+        print(f"  [skip] squad values cache ({len(load_squad_values())} rows)")
+        return
+
+    if teams is None:
+        from src.data_loader import load_international_results
+        matches = load_international_results()
+        teams = sorted(set(matches["home_team"]) | set(matches["away_team"]))
+
+    print(f"  Fetching Transfermarkt squad values for {len(teams)} teams...")
+    df = build_squad_values_table(teams)
+    print(f"  Cached {len(df)} squad value rows -> {SQUAD_VALUES_PATH}")
+
+
+def download_polymarket_odds(force: bool = False) -> None:
+    """Fetch Polymarket odds for World Cup matches (public API, no key)."""
+    from src.polymarket_client import build_polymarket_odds_table, ODDS_CACHE_PATH
+    from src.data_loader import load_international_results
+
+    if ODDS_CACHE_PATH.exists() and not force:
+        print(f"  [skip] Polymarket odds cache")
+        return
+
+    matches = load_international_results()
+    print("  Fetching Polymarket odds for World Cup matches...")
+    df = build_polymarket_odds_table(matches, force=force)
+    print(f"  Cached {len(df)} Polymarket odds rows")
+
+
+def download_api_football_fixtures(force: bool = False) -> None:
+    """Sync FIFA World Cup 2026 fixtures from API-Football (or martj42 fallback)."""
+    from src.api_football_client import FIXTURES_PATH, get_fixture_sync_meta, sync_wc_fixtures
+    from src.match_predictor import get_predictor
+
+    try:
+        teams = get_predictor().teams
+    except Exception:
+        teams = None
+
+    df = sync_wc_fixtures(force=force, known_teams=teams)
+    meta = get_fixture_sync_meta()
+    print(f"  Cached {len(df)} fixtures -> {FIXTURES_PATH}")
+    if meta:
+        print(f"  Source: {meta.get('source', 'unknown')}, synced: {meta.get('synced_at', '?')}")
+
+
 def download_transfermarkt(force: bool = False) -> None:
     """Download Transfermarkt CSV files from GitHub."""
     TRANSFERMARKT_DIR.mkdir(parents=True, exist_ok=True)
@@ -190,6 +240,9 @@ def main() -> None:
     parser.add_argument("--statsbomb-only", action="store_true")
     parser.add_argument("--transfermarkt-only", action="store_true")
     parser.add_argument("--international-only", action="store_true")
+    parser.add_argument("--tm-api-only", action="store_true", help="Only fetch Transfermarkt API squad values")
+    parser.add_argument("--polymarket-only", action="store_true", help="Only fetch Polymarket odds")
+    parser.add_argument("--api-football-only", action="store_true", help="Sync WC 2026 fixtures from API-Football")
     parser.add_argument("--matches-only", action="store_true", help="Skip event download")
     parser.add_argument("--events-only", action="store_true", help="Only download events")
     args = parser.parse_args()
@@ -197,11 +250,26 @@ def main() -> None:
     if args.events_only:
         print("Downloading StatsBomb events (resumable)...")
         download_statsbomb_events(force=args.force)
+    elif args.tm_api_only:
+        print("Downloading Transfermarkt API squad values...")
+        download_transfermarkt_api(force=args.force)
+    elif args.polymarket_only:
+        print("Downloading Polymarket odds...")
+        download_polymarket_odds(force=args.force)
+    elif args.api_football_only:
+        print("Syncing API-Football WC 2026 fixtures...")
+        download_api_football_fixtures(force=args.force)
     elif args.international_only:
         print("Downloading international results...")
         download_international(force=args.force)
         print("Downloading odds...")
         download_odds(force=args.force)
+        print("Downloading Transfermarkt API squad values...")
+        download_transfermarkt_api(force=args.force)
+        print("Downloading Polymarket odds...")
+        download_polymarket_odds(force=args.force)
+        print("Syncing API-Football fixtures...")
+        download_api_football_fixtures(force=args.force)
     elif not args.transfermarkt_only:
         print("Downloading international results...")
         download_international(force=args.force)
@@ -212,8 +280,16 @@ def main() -> None:
             download_statsbomb_matches(force=args.force)
 
     if not args.statsbomb_only and not args.events_only and not args.international_only:
-        print("Downloading Transfermarkt data...")
-        download_transfermarkt(force=args.force)
+        if not args.polymarket_only and not args.tm_api_only and not args.api_football_only:
+            print("Downloading Transfermarkt API squad values...")
+            download_transfermarkt_api(force=args.force)
+            print("Downloading Polymarket odds...")
+            download_polymarket_odds(force=args.force)
+            print("Syncing API-Football fixtures...")
+            download_api_football_fixtures(force=args.force)
+        if not args.polymarket_only and not args.tm_api_only and not args.api_football_only:
+            print("Downloading legacy Transfermarkt CSVs (optional)...")
+            download_transfermarkt(force=args.force)
 
     print("Done.")
 

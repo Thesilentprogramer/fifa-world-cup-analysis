@@ -121,7 +121,7 @@ def main() -> None:
     val_proba_raw = best_pipe.predict_proba(X_val)
     evaluate("val", y_val.values, val_proba_raw)
 
-    calibrated = CalibratedClassifierCV(FrozenEstimator(best_pipe), method="isotonic")
+    calibrated = CalibratedClassifierCV(FrozenEstimator(best_pipe), method="sigmoid")
     calibrated.fit(X_val, y_val)
 
     print("\nXGBoost (calibrated on 2018 WC):")
