@@ -1,0 +1,18 @@
+{
+  "feature_columns": [
+    "distance",
+    "angle",
+    "body_part",
+    "technique",
+    "shot_type"
+  ],
+  "metrics": {
+    "log_loss": 0.27064724497211773,
+    "brier": 0.0769897074104663,
+    "roc_auc": 0.8141710951407517,
+    "n_shots": 9649,
+    "goal_rate": 0.11006321898642346,
+    "mean_predicted_xg": 0.11009242843550385,
+    "mean_statsbomb_xg": 0.11504350089032023
+  }
+}
