@@ -1,34 +1,63 @@
-"""FIFA World Cup Match Predictor — Streamlit entry point."""
+"""FIFA World Cup Match Predictor — splash landing."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
 
 import streamlit as st
 
+APP_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(APP_DIR.parent))
+
+from app.theme import inject_splash_styles, render_splash_background
+
 st.set_page_config(
-    page_title="FIFA World Cup Predictor",
+    page_title="FIFA World Cup Match Analysis",
     page_icon="⚽",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
+    menu_items=None,
 )
 
-st.title("FIFA World Cup Match Predictor")
+inject_splash_styles()
+render_splash_background(height=800)
+
 st.markdown(
     """
-    Predict international football match outcomes with calibrated Win / Draw / Loss probabilities.
-
-    **Data sources:** StatsBomb Open Data · Transfermarkt Datasets
-
-    Use the sidebar to navigate to **Match Predictor**.
-    """
+    <div class="splash-content">
+      <div class="splash-title">FIFA World Cup<br>Match Analysis Dashboard</div>
+      <div class="splash-subtitle">
+        Calibrated W/D/L predictions · xG simulation · SHAP explainability · WC 2026 fixtures
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Model", "XGBoost + Isotonic Calibration")
-with col2:
-    st.metric("Validation", "2018 World Cup")
-with col3:
-    st.metric("Test Set", "2022 World Cup (held-out)")
+_, col_btn, _ = st.columns([1, 1.2, 1])
+with col_btn:
+    st.markdown('<div class="splash-btn-wrap">', unsafe_allow_html=True)
+    if st.button("Enter Dashboard", type="primary", use_container_width=True):
+        st.switch_page("pages/1_match_predictor.py")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-st.info(
-    "Probabilities are estimates based on historical data. "
-    "Navigate to **Match Predictor** in the sidebar to compare two national teams."
-)
+with st.expander("About this project"):
+    st.markdown(
+        """
+        **Match Outcome Model** — XGBoost + isotonic calibration on men's internationals since 2000.
+        Validated on 2018 World Cup, tested on held-out 2022 World Cup.
+
+        **Data sources:** martj42 internationals · StatsBomb · Transfermarkt API · Polymarket · API-Football
+
+        | Metric | Value |
+        |--------|-------|
+        | Validation (2018 WC) | ~62.5% accuracy |
+        | Test (2022 WC) | ~56.3% accuracy |
+        | xG shot model AUC | ~0.81 |
+
+        Use the sidebar after entering the dashboard: **WC 2026 Dashboard** · **xG Engine**
+        """
+    )
+
+st.caption("Probabilities are estimates based on historical data — not betting advice.")

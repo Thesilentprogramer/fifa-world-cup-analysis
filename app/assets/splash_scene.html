@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: radial-gradient(ellipse at center, #0d2818 0%, #061510 45%, #030a08 100%); }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const NATIONS = [
+      {iso:"ca"},{iso:"mx"},{iso:"us"},{iso:"ir"},{iso:"jp"},{iso:"nz"},
+      {iso:"ar"},{iso:"br"},{iso:"uy"},{iso:"co"},{iso:"ec"},{iso:"py"},
+      {iso:"gb-eng"},{iso:"fr"},{iso:"de"},{iso:"es"},{iso:"nl"},{iso:"pt"},
+      {iso:"be"},{iso:"hr"},{iso:"ch"},{iso:"at"},{iso:"se"},{iso:"no"},
+      {iso:"ma"},{iso:"tn"},{iso:"eg"},{iso:"dz"},{iso:"sn"},{iso:"ci"},
+      {iso:"gh"},{iso:"cv"},{iso:"za"},{iso:"cd"},{iso:"tr"},{iso:"iq"},
+      {iso:"kr"},{iso:"au"},{iso:"jo"},{iso:"uz"},{iso:"qa"},{iso:"sa"},
+      {iso:"cz"},{iso:"ba"},{iso:"pa"},{iso:"ht"},{iso:"gb-sct"},{iso:"cw"}
+    ];
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x061510, 0.008);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera.position.set(0, 6, 28);
+    camera.lookAt(0, 2, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x061510, 1);
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xfff8e7, 0.85);
+    key.position.set(10, 25, 15);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0x4fc3f7, 0.25);
+    fill.position.set(-12, 8, -10);
+    scene.add(fill);
+
+    // Subtle pitch plane
+    const pitch = new THREE.Mesh(
+      new THREE.CircleGeometry(22, 64),
+      new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 0.95, metalness: 0 })
+    );
+    pitch.rotation.x = -Math.PI / 2;
+    pitch.position.y = -2.5;
+    scene.add(pitch);
+
+    // Football — icosahedron with black/white patches
+    const ballGroup = new THREE.Group();
+    const ballGeo = new THREE.IcosahedronGeometry(2.2, 1);
+    const ballColors = [0xffffff, 0x111111];
+    const pos = ballGeo.attributes.position;
+    for (let i = 0; i < pos.count; i += 3) {
+      const cx = (pos.getX(i) + pos.getX(i+1) + pos.getX(i+2)) / 3;
+      const cz = (pos.getZ(i) + pos.getZ(i+1) + pos.getZ(i+2)) / 3;
+      const patch = new THREE.Mesh(
+        new THREE.BufferGeometry(),
+        new THREE.MeshStandardMaterial({
+          color: ballColors[(Math.abs(Math.floor(cx * 3 + cz * 2)) % 2)],
+          roughness: 0.55,
+          metalness: 0.05,
+        })
+      );
+    }
+    const ball = new THREE.Mesh(
+      new THREE.SphereGeometry(2.2, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.45, metalness: 0.08 })
+    );
+    // pentagon patches as dark decals
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const patch = new THREE.Mesh(
+        new THREE.CircleGeometry(0.55, 5),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 })
+      );
+      patch.position.set(Math.cos(a) * 2.15, Math.sin(i * 0.9) * 0.8, Math.sin(a) * 2.15);
+      patch.lookAt(0, patch.position.y, 0);
+      ballGroup.add(patch);
+    }
+    ballGroup.add(ball);
+    ballGroup.position.y = 1.5;
+    scene.add(ballGroup);
+
+    // Flag orbit — two rings
+    const flagGroup = new THREE.Group();
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = "anonymous";
+
+    function flagUrl(iso) {
+      return "https://flagcdn.com/w80/" + iso + ".png";
+    }
+
+    const flags = [];
+    NATIONS.forEach((n, i) => {
+      const ring = i < 24 ? 0 : 1;
+      const idx = i % 24;
+      const radius = ring === 0 ? 11 : 15;
+      const yBase = ring === 0 ? 2.5 : 4.5;
+      const tilt = ring === 0 ? 0.15 : -0.1;
+
+      const tex = loader.load(flagUrl(n.iso), undefined, undefined, () => {
+        // fallback gray if CDN fails
+      });
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), mat);
+      const angle = (idx / 24) * Math.PI * 2 + ring * 0.13;
+      plane.userData = { angle, radius, yBase, tilt, phase: i * 0.5, ring };
+      flags.push(plane);
+      flagGroup.add(plane);
+    });
+    scene.add(flagGroup);
+
+    let t = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      t += 0.012;
+
+      ballGroup.rotation.y = t * 0.4;
+      ballGroup.position.y = 1.5 + Math.sin(t * 1.2) * 0.15;
+      flagGroup.rotation.y = t * 0.18;
+
+      flags.forEach((plane) => {
+        const d = plane.userData;
+        const a = d.angle + t * (d.ring === 0 ? 0.12 : -0.08);
+        plane.position.x = Math.cos(a) * d.radius;
+        plane.position.z = Math.sin(a) * d.radius;
+        plane.position.y = d.yBase + Math.sin(t * 1.8 + d.phase) * 0.35;
+        plane.lookAt(0, plane.position.y, 0);
+        plane.rotateX(d.tilt);
+      });
+
+      camera.position.x = Math.sin(t * 0.08) * 3;
+      camera.lookAt(0, 2, 0);
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
