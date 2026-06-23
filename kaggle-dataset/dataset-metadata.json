@@ -1,0 +1,10 @@
+{
+  "id": "shubhamindulkar/fifa-wc-2026-engineered-match-dataset",
+  "title": "FIFA World Cup 2026 — Engineered Match Dataset",
+  "licenses": [{"name": "CC0-1.0"}],
+  "description": "Pre-engineered features for men's international football match outcome prediction. Includes 28,000+ team-perspective rows (2000–2025), ELO ratings, rolling form, H2H history, squad market values, and model metadata. Companion to the FIFA WC 2026 ML Analysis notebook.",
+  "keywords": [
+    "football", "soccer", "fifa", "world cup", "machine learning",
+    "prediction", "elo", "xgboost", "sports analytics", "kaggle"
+  ]
+}

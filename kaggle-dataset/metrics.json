@@ -1,0 +1,13 @@
+{
+  "validation": {
+    "log_loss": 0.9427067273275456,
+    "brier": 0.18663349883267247,
+    "accuracy": 0.578125
+  },
+  "test": {
+    "log_loss": 0.9334814316307012,
+    "brier": 0.18300844927035373,
+    "accuracy": 0.5546875
+  },
+  "high_confidence_test_acc": 0.6875
+}
