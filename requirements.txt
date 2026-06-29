@@ -17,3 +17,4 @@ soccerdata>=1.5.0
 openpyxl>=3.1.0
 mplsoccer>=1.4.0
 python-dotenv>=1.0.0
+fpdf2>=2.7.9

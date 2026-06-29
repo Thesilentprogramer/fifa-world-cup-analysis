@@ -20,6 +20,9 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.api_football_client import load_wc_fixtures, fetch_live_odds_for_fixture, parse_match_winner_odds
+from src.odds_comparison import odds_to_implied_probs
+from src.pdf_generator import generate_prematch_pdf
 from src.match_predictor import get_predictor
 from src.prematch_analysis import analyze_fixture
 from src.player_stats import load_top_scorers
@@ -159,12 +162,48 @@ if predict_btn or "h2h_last_predicted" in st.session_state and st.session_state.
                 f"{team_b} Win": f"{float(poly_loss):.1%}" if poly_loss and pd.notna(poly_loss) else "N/A",
             })
 
+        # Fetch live odds from API-Football if available for this head-to-head match
+        live_odds_added = False
+        try:
+            fixtures = load_wc_fixtures()
+            if not fixtures.empty:
+                matches = fixtures[
+                    ((fixtures["home_team"] == team_a) & (fixtures["away_team"] == team_b)) |
+                    ((fixtures["home_team"] == team_b) & (fixtures["away_team"] == team_a))
+                ]
+                if not matches.empty:
+                    # Sort upcoming first, or just take first
+                    match_row = matches.iloc[0]
+                    fixture_id = match_row.get("fixture_id")
+                    if fixture_id:
+                        raw_odds = fetch_live_odds_for_fixture(int(fixture_id))
+                        if raw_odds:
+                            parsed_odds = parse_match_winner_odds(raw_odds, team_a, team_b)
+                            if parsed_odds:
+                                dec_home = parsed_odds["home_odds"]
+                                dec_draw = parsed_odds["draw_odds"]
+                                dec_away = parsed_odds["away_odds"]
+                                # If team_a was away in the actual fixture, flip odds
+                                is_a_home = (match_row["home_team"] == team_a)
+                                implied = odds_to_implied_probs(dec_home, dec_draw, dec_away)
+                                if not is_a_home:
+                                    implied = implied[::-1] # reverse so a_win, draw, b_win
+                                rows.append({
+                                    "Source": f"🏦 {parsed_odds['bookmaker']} (Live)",
+                                    f"{team_a} Win": f"{implied[0]:.1%}",
+                                    "Draw": f"{implied[1]:.1%}",
+                                    f"{team_b} Win": f"{implied[2]:.1%}",
+                                })
+                                live_odds_added = True
+        except Exception:
+            pass
+
         bk_win = snap_a.get("implied_prob_win") if snap_a is not None else None
         bk_draw = snap_a.get("implied_prob_draw") if snap_a is not None else None
         bk_loss = snap_a.get("implied_prob_loss") if snap_a is not None else None
-        if bk_win and pd.notna(bk_win) and float(bk_win) > 0:
+        if not live_odds_added and bk_win and pd.notna(bk_win) and float(bk_win) > 0:
             rows.append({
-                "Source": "🏦 Bookmaker (B365 implied)",
+                "Source": "🏦 Bookmaker (Hist)",
                 f"{team_a} Win": f"{float(bk_win):.1%}",
                 "Draw": f"{float(bk_draw):.1%}" if bk_draw and pd.notna(bk_draw) else "N/A",
                 f"{team_b} Win": f"{float(bk_loss):.1%}" if bk_loss and pd.notna(bk_loss) else "N/A",
@@ -199,6 +238,36 @@ if predict_btn or "h2h_last_predicted" in st.session_state and st.session_state.
                 margin=dict(t=40, b=10),
             )
             st.plotly_chart(fig_comp, width="stretch")
+
+            # One-click PDF briefing export
+            try:
+                pdf_data = generate_prematch_pdf(
+                    team_a, team_b,
+                    {
+                        "stage": stage,
+                        "venue": "Neutral Venue",
+                        "prob_home_win": analysis["prob_home_win"],
+                        "prob_draw": analysis["prob_draw"],
+                        "prob_away_win": analysis["prob_away_win"],
+                        "expected_xg_home": analysis.get("expected_xg_home"),
+                        "expected_xg_away": analysis.get("expected_xg_away"),
+                        "top_scoreline": analysis.get("top_scoreline"),
+                        "elo_home": analysis.get("elo_home"),
+                        "elo_away": analysis.get("elo_away"),
+                        "narrative": analysis.get("narrative", "")
+                    }
+                )
+                st.download_button(
+                    label="📄 Download Pre-Match Briefing PDF",
+                    data=pdf_data,
+                    file_name=f"{team_a}_vs_{team_b}_briefing.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key=f"pdf_btn_custom_{team_a}_{team_b}"
+                )
+            except Exception as e:
+                st.caption(f"⚠️ PDF generation failed: {e}")
+
 
     # -------------------------------------------------------------------------
     # TAB 2: H2H TEAM METRICS

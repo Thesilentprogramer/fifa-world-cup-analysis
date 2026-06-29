@@ -318,16 +318,21 @@ bash scripts/install_cron.sh   # print crontab line
 ## Roadmap — Features We Can Add
 
 ### High Priority
-- [ ] **API-Football live odds join** — `/odds?fixture=` endpoint for bookmaker lines on dashboard.
-- [ ] **Group standings widget** — Points table with predicted vs actual finish.
-- [ ] **PDF match report export** — One-click pre-match briefing.
+*None currently.*
 
 ### Medium Priority
-- [ ] **Docker / docker-compose** — One-command deploy with cached data volume.
-- [ ] **Historical valuation time series** — Transfermarkt player values as-of match date.
+- [ ] **Historical valuation time series** — Transfermarkt player values as-of match date. (Using live API only for current squads).
 - [ ] **FIFA ranking join** — Monthly rank/points as optional feature.
+- [ ] **Live odds integration** — Real-time bookmaker lines via Polymarket Gamma API for upcoming fixtures.
+- [x] **PDF match report export** — One-click pre-match briefing generation.
+
+### Low Priority
 
 ### Completed Features
+- [x] **API-Football live odds join** — `/odds?fixture=` endpoint for bookmaker lines on dashboard.
+- [x] **Group standings widget** — Points table with predicted (Monte Carlo) vs actual finish.
+- [x] **PDF match report export** — One-click pre-match briefing briefing.
+- [x] **Docker / docker-compose** — One-command deploy with cached data volume.
 - [x] **Knockout bracket view** — Visual bracket with predictions as tournament progresses (interactive simulator + round-by-round W/D/L + penalty simulator tiebreakers).
 - [x] **Model vs market benchmark** — Side-by-side our probabilities vs Polymarket / API-Football predictions on dashboard upcoming matches deep dive.
 - [x] **Phase 3 — Player dashboard** — Top scorers (goalscorers.csv), StatsBomb event-level player leaderboards & xG Chain, player profile stats cards & radar.

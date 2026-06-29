@@ -19,10 +19,18 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.api_football_client import get_fixture_sync_meta, load_wc_fixtures, sync_wc_fixtures
+from src.api_football_client import (
+    get_fixture_sync_meta,
+    load_wc_fixtures,
+    sync_wc_fixtures,
+    fetch_live_odds_for_fixture,
+    parse_match_winner_odds,
+)
 from src.fixture_filters import is_sync_stale, split_today_tomorrow
 from src.match_predictor import get_predictor
+from src.odds_comparison import odds_to_implied_probs
 from src.prematch_analysis import analyze_fixture, load_played_cached, load_upcoming_today_tomorrow
+from src.pdf_generator import generate_prematch_pdf
 from app.theme import inject_app_styles
 from app.charts.model_charts import fig_match_model_performance, load_match_metrics
 
@@ -195,7 +203,7 @@ def _format_kickoff(ts) -> str:
     return local.strftime("%H:%M")
 
 
-def _render_market_comparison(home: str, away: str, model_probs: dict) -> None:
+def _render_market_comparison(home: str, away: str, model_probs: dict, fixture_id: int | None = None) -> None:
     snap_a = predictor._team_snapshots.get(home)
     
     poly_win = snap_a.get("polymarket_prob_win") if snap_a is not None else None
@@ -221,9 +229,31 @@ def _render_market_comparison(home: str, away: str, model_probs: dict) -> None:
             f"{away} Win": f"{float(poly_loss):.1%}" if poly_loss and pd.notna(poly_loss) else "N/A",
         })
 
-    if bk_win and pd.notna(bk_win) and float(bk_win) > 0:
+    # Fetch live odds from API-Football if available
+    live_odds_added = False
+    if fixture_id:
+        try:
+            raw_odds = fetch_live_odds_for_fixture(int(fixture_id))
+            if raw_odds:
+                parsed_odds = parse_match_winner_odds(raw_odds, home, away)
+                if parsed_odds:
+                    dec_home = parsed_odds["home_odds"]
+                    dec_draw = parsed_odds["draw_odds"]
+                    dec_away = parsed_odds["away_odds"]
+                    implied = odds_to_implied_probs(dec_home, dec_draw, dec_away)
+                    rows.append({
+                        "Source": f"🏦 {parsed_odds['bookmaker']} (Live)",
+                        f"{home} Win": f"{implied[0]:.1%}",
+                        "Draw": f"{implied[1]:.1%}",
+                        f"{away} Win": f"{implied[2]:.1%}",
+                    })
+                    live_odds_added = True
+        except Exception:
+            pass
+
+    if not live_odds_added and bk_win and pd.notna(bk_win) and float(bk_win) > 0:
         rows.append({
-            "Source": "🏦 Bookmaker",
+            "Source": "🏦 Bookmaker (Hist)",
             f"{home} Win": f"{float(bk_win):.1%}",
             "Draw": f"{float(bk_draw):.1%}" if bk_draw and pd.notna(bk_draw) else "N/A",
             f"{away} Win": f"{float(bk_loss):.1%}" if bk_loss and pd.notna(bk_loss) else "N/A",
@@ -311,7 +341,36 @@ def _match_card(row: pd.Series, key_prefix: str) -> None:
                 "win": analysis["prob_home_win"],
                 "draw": analysis["prob_draw"],
                 "away": analysis["prob_away_win"]
-            })
+            }, fixture_id=row.get("fixture_id"))
+
+            # One-click PDF briefing export
+            try:
+                pdf_data = generate_prematch_pdf(
+                    home, away,
+                    {
+                        "stage": row.get("stage", "group"),
+                        "venue": row.get("venue", "TBD"),
+                        "prob_home_win": analysis["prob_home_win"],
+                        "prob_draw": analysis["prob_draw"],
+                        "prob_away_win": analysis["prob_away_win"],
+                        "expected_xg_home": analysis.get("expected_xg_home"),
+                        "expected_xg_away": analysis.get("expected_xg_away"),
+                        "top_scoreline": analysis.get("top_scoreline"),
+                        "elo_home": analysis.get("elo_home"),
+                        "elo_away": analysis.get("elo_away"),
+                        "narrative": analysis.get("narrative", "")
+                    }
+                )
+                st.download_button(
+                    label="📄 Download Pre-Match Briefing PDF",
+                    data=pdf_data,
+                    file_name=f"{home}_vs_{away}_briefing.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key=f"pdf_btn_{row.get('_fixture_id', home)}"
+                )
+            except Exception as e:
+                st.caption(f"⚠️ PDF generation failed: {e}")
 
 
 def _played_card(row: pd.Series) -> None:

@@ -178,6 +178,7 @@ def analyze_fixtures(
             pick = "Draw"
 
         records.append({
+            "fixture_id": fix.get("fixture_id"),
             "match_date": fix["match_date"],
             "home_team": fix["home_team"],
             "away_team": fix["away_team"],

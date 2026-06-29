@@ -237,3 +237,88 @@ def get_fixture_sync_meta() -> dict:
     if SYNC_META_PATH.exists():
         return json.loads(SYNC_META_PATH.read_text(encoding="utf-8"))
     return {}
+
+
+def fetch_live_odds_for_fixture(fixture_id: int) -> dict | None:
+    """Fetch live pre-match/match-winner odds for a fixture from API-Football, caching results for 1 hour."""
+    if not fixture_id:
+        return None
+
+    cache_file = CACHE_DIR / f"odds_{fixture_id}.json"
+    
+    # Check if cache is valid (less than 1 hour old)
+    if cache_file.exists():
+        mtime = cache_file.stat().st_mtime
+        if time.time() - mtime < 3600:
+            try:
+                return json.loads(cache_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+    if not API_FOOTBALL_KEY:
+        return None
+
+    print(f"  Fetching live odds for fixture {fixture_id} from API-Football...")
+    body = _api_get("odds", {"fixture": fixture_id})
+    if not body or not body.get("response"):
+        return None
+
+    # Cache the raw response on disk
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps(body, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+    return body
+
+
+def parse_match_winner_odds(odds_body: dict, home_team: str = "", away_team: str = "") -> dict | None:
+    """Parse decimal match winner (1X2) odds from API-Football response. Returns decimal odds or None."""
+    if not odds_body or "response" not in odds_body:
+        return None
+
+    response_list = odds_body.get("response", [])
+    if not response_list:
+        return None
+
+    # Inspect bookmakers in the first response item
+    item = response_list[0]
+    bookmakers = item.get("bookmakers", [])
+    if not bookmakers:
+        return None
+
+    home_lower = home_team.lower()
+    away_lower = away_team.lower()
+
+    # Look for "Match Winner" bet (id: 1) in bookmakers
+    for bm in bookmakers:
+        for bet in bm.get("bets", []):
+            bet_id = bet.get("id")
+            bet_name = bet.get("name", "")
+            if bet_id == 1 or bet_name.lower() == "match winner":
+                values = bet.get("values", [])
+                if len(values) < 3:
+                    continue
+
+                home_odd = draw_odd = away_odd = None
+                for val in values:
+                    v_label = str(val.get("value", "")).lower()
+                    v_odd = float(val.get("odd", 0.0))
+                    
+                    if v_label in ("home", "1") or (home_lower and home_lower in v_label):
+                        home_odd = v_odd
+                    elif v_label in ("draw", "x", "n", "tie"):
+                        draw_odd = v_odd
+                    elif v_label in ("away", "2") or (away_lower and away_lower in v_label):
+                        away_odd = v_odd
+
+                if home_odd and draw_odd and away_odd:
+                    return {
+                        "bookmaker": bm.get("name", "Unknown"),
+                        "home_odds": home_odd,
+                        "draw_odds": draw_odd,
+                        "away_odds": away_odd
+                    }
+
+    return None
