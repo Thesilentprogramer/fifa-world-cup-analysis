@@ -83,3 +83,65 @@ def ensure_project_deps() -> None:
 
     print("\n".join(lines), file=sys.stderr)
     sys.exit(1)
+
+
+def ensure_model_compatibility() -> None:
+    """Ensure that the pickled models are compatible with the current environment.
+    
+    If there is a mismatch (e.g., different OS, python version, or package versions),
+    the models are automatically retrained to prevent segmentation faults during loading.
+    """
+    project_root = _project_root()
+    models_dir = project_root / "models"
+    signature_path = models_dir / "model_env_signature.json"
+    
+    try:
+        import joblib
+        import sklearn
+        import xgboost
+    except ImportError:
+        # If packages are not installed, we can't retrain or run; env_check will handle
+        return
+
+    current_sig = {
+        "platform": sys.platform,
+        "xgboost_version": xgboost.__version__,
+        "scikit_learn_version": sklearn.__version__,
+        "joblib_version": joblib.__version__
+    }
+    
+    retrain = True
+    if signature_path.exists():
+        try:
+            import json
+            saved_sig = json.loads(signature_path.read_text(encoding="utf-8"))
+            if (
+                saved_sig.get("platform") == current_sig["platform"]
+                and saved_sig.get("xgboost_version") == current_sig["xgboost_version"]
+                and saved_sig.get("scikit_learn_version") == current_sig["scikit_learn_version"]
+                and saved_sig.get("joblib_version") == current_sig["joblib_version"]
+            ):
+                retrain = False
+        except Exception:
+            pass
+            
+    if retrain:
+        print("Model environment mismatch or missing signature. Retraining models for current environment...")
+        try:
+            # Run the training scripts main functions
+            from scripts.train_model import main as train_outcome_main
+            from scripts.train_xg_model import main as train_xg_main
+            
+            train_outcome_main()
+            try:
+                train_xg_main()
+            except SystemExit as se:
+                if se.code != 0:
+                    print(f"Warning: train_xg_model exited with code {se.code}", file=sys.stderr)
+            
+            import json
+            signature_path.write_text(json.dumps(current_sig, indent=2), encoding="utf-8")
+            print("Model retraining completed and signature updated.")
+        except Exception as e:
+            print(f"Warning: Automatic model retraining failed: {e}", file=sys.stderr)
+

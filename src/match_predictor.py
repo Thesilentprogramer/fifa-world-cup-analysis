@@ -71,6 +71,8 @@ FEATURE_LABELS = {
 class MatchPredictor:
     def __init__(self, models_dir: Path | None = None):
         self.models_dir = models_dir or MODELS_DIR
+        from src.env_check import ensure_model_compatibility
+        ensure_model_compatibility()
         self.model = joblib.load(self.models_dir / "match_outcome.pkl")
         self.calibrator = joblib.load(self.models_dir / "calibrator.pkl")
         with open(self.models_dir / "feature_columns.json") as f:

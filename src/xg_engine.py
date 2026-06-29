@@ -76,6 +76,8 @@ def save_xg_model(model: Pipeline, metrics: dict | None = None) -> None:
 
 @lru_cache(maxsize=1)
 def load_xg_model() -> Pipeline:
+    from src.env_check import ensure_model_compatibility
+    ensure_model_compatibility()
     if not XG_MODEL_PATH.exists():
         raise FileNotFoundError(
             "xG model not found. Run: python scripts/train_xg_model.py"
