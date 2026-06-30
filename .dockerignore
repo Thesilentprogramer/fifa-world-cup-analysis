@@ -1,0 +1,10 @@
+.git
+.venv
+data/
+models/
+notebooks/
+.qodo/
+**/__pycache__/
+*.ipynb
+cover.png
+.DS_Store
